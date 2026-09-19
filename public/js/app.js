@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     connecting: null, // { sourceNodeId, sourceHandle, startX, startY }
     zoomLevel: 1.0,
     panOffset: { x: 0, y: 0 },
-    allWorkflows: []
+    allWorkflows: [],
+    isExecuting: false
   };
 
   // Node Templates for palette & creation
@@ -105,6 +106,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnResetDemo = document.getElementById('btnResetDemo');
   const btnViewJson = document.getElementById('btnViewJson');
   const btnSaveWorkflow = document.getElementById('btnSaveWorkflow');
+  const btnRunWorkflow = document.getElementById('btnRunWorkflow');
+
+  // Execution Console Elements (Milestone 3)
+  const executionPanel = document.getElementById('executionPanel');
+  const executionPanelHeader = document.getElementById('executionPanelHeader');
+  const execStatusDot = document.getElementById('execStatusDot');
+  const execBadge = document.getElementById('execBadge');
+  const execMeta = document.getElementById('execMeta');
+  const btnToggleExecPanel = document.getElementById('btnToggleExecPanel');
+  const btnCloseExecPanel = document.getElementById('btnCloseExecPanel');
+  const execEmpty = document.getElementById('execEmpty');
+  const execLogStream = document.getElementById('execLogStream');
 
   // Canvas Zoom Controls
   const btnZoomIn = document.getElementById('btnZoomIn');
@@ -312,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     workflowNameInput.value = wf.name || 'Untitled Workflow';
     updateStatusBadge(wf.status || 'active');
 
+    clearExecutionHighlighting();
     renderAllNodes();
     renderEdges();
     renderInspector();
@@ -351,24 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderNodeElement(node) {
-    const template = NODE_TEMPLATES[node.type] || {
-      category: 'action',
-      icon: '📦',
-      label: node.label || 'Node'
-    };
-
-    const nodeEl = document.createElement('div');
-    nodeEl.id = `node-${node.id}`;
-    nodeEl.className = `workflow-node node-${template.category}`;
-    if (state.selectedNodeId === node.id) {
-      nodeEl.classList.add('selected');
-    }
-
-    nodeEl.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
-    nodeEl.setAttribute('data-id', node.id);
-
-    // Dynamic Summary Chips
+  function getNodeBodyHtml(node) {
     let bodyChipsHtml = '';
     if (node.type === 'github_issue') {
       bodyChipsHtml = `
@@ -414,6 +411,27 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
+    return bodyChipsHtml;
+  }
+
+  function renderNodeElement(node) {
+    const template = NODE_TEMPLATES[node.type] || {
+      category: 'action',
+      icon: '📦',
+      label: node.label || 'Node'
+    };
+
+    const nodeEl = document.createElement('div');
+    nodeEl.id = `node-${node.id}`;
+    nodeEl.className = `workflow-node node-${template.category}`;
+    if (state.selectedNodeId === node.id) {
+      nodeEl.classList.add('selected');
+    }
+
+    nodeEl.style.transform = `translate(${node.position.x}px, ${node.position.y}px)`;
+    nodeEl.setAttribute('data-id', node.id);
+
+    const bodyChipsHtml = getNodeBodyHtml(node);
 
     // Ports HTML
     let portsHtml = '';
@@ -505,10 +523,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const titleEl = nodeEl.querySelector('.node-title');
     if (titleEl) titleEl.textContent = node.label;
 
-    // Re-render the node element completely to keep ports & chips synchronized
-    nodeEl.remove();
-    renderNodeElement(node);
-    renderEdges();
+    const bodyEl = nodeEl.querySelector('.node-body');
+    if (bodyEl) {
+      bodyEl.innerHTML = getNodeBodyHtml(node);
+    }
   }
 
   // ==========================================================================
@@ -1366,6 +1384,225 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   btnSaveWorkflow.addEventListener('click', saveWorkflowToBackend);
   btnResetDemo.addEventListener('click', resetDemoWorkflow);
+  btnRunWorkflow.addEventListener('click', runWorkflowExecution);
+
+  // ==========================================================================
+  // Workflow Execution Engine (Milestone 3)
+  // ==========================================================================
+  async function runWorkflowExecution() {
+    if (state.isExecuting) return;
+    if (!state.currentWorkflow) {
+      showToast('No active workflow to execute', 'error');
+      return;
+    }
+
+    state.isExecuting = true;
+    btnRunWorkflow.disabled = true;
+    btnRunWorkflow.classList.add('running');
+    btnRunWorkflow.querySelector('.btn-run-text').textContent = 'Running...';
+
+    // Clear previous node and edge highlights
+    clearExecutionHighlighting();
+
+    // Show execution panel
+    executionPanel.classList.remove('closed', 'collapsed');
+    btnToggleExecPanel.textContent = '▾';
+    execEmpty.style.display = 'none';
+    execLogStream.style.display = 'flex';
+    execLogStream.innerHTML = '';
+
+    // Update panel header
+    execStatusDot.className = 'exec-status-dot running';
+    execBadge.className = 'exec-badge badge-running';
+    execBadge.textContent = 'RUNNING';
+    execMeta.textContent = `Workflow: ${state.currentWorkflow.name}`;
+
+    try {
+      // Auto-save any pending canvas edits first so engine executes up-to-date graph
+      try {
+        await apiFetch(`/api/workflows/${state.currentWorkflow.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(state.currentWorkflow)
+        });
+      } catch (saveErr) {
+        console.warn('Pre-execution auto-save warning:', saveErr);
+      }
+
+      // POST /api/workflows/:id/run
+      const runRes = await apiFetch(`/api/workflows/${state.currentWorkflow.id}/run`, {
+        method: 'POST'
+      });
+
+      if (!runRes || !runRes.success) {
+        throw new Error(runRes?.error || 'Workflow execution failed');
+      }
+
+      const execution = runRes.data;
+      const steps = execution.steps || [];
+
+      // Step-by-step sequential canvas animation and timeline log stream
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const stepTime = new Date(step.startedAt || Date.now()).toLocaleTimeString();
+
+        // 1. Highlight current node as executing on canvas
+        const nodeEl = document.getElementById(`node-${step.nodeId}`);
+        if (nodeEl) {
+          nodeEl.classList.remove('execution-success', 'execution-failed', 'execution-skipped');
+          nodeEl.classList.add('executing');
+        }
+
+        // 2. Generate informative step description
+        let desc = '';
+        if (step.type === 'github_issue') {
+          desc = `Simulated issue #${step.output.issueNumber}: "${escapeHtml(step.output.title)}" (${escapeHtml(step.output.repository)})`;
+        } else if (step.type === 'ai_classifier') {
+          desc = `Classification: ${step.output.type.toUpperCase()} • Priority: ${step.output.priority.toUpperCase()} • Confidence: ${(step.output.confidence * 100).toFixed(0)}% (${step.output.modelUsed})`;
+        } else if (step.type === 'condition') {
+          desc = `Condition evaluated: ${step.output.evaluatedField} (${step.output.actualValue}) ${step.output.operator} ${step.output.expectedValue} ➔ Branch: ${step.output.branchSelected === 'true' ? 'BUG (True)' : 'OTHER (False)'}`;
+        } else if (step.type === 'discord') {
+          desc = `Simulated alert sent to #${step.output.channel} [${step.output.status}]`;
+        } else if (step.type === 'email') {
+          desc = `Simulated email dispatched to ${step.output.recipient} [${step.output.status}]`;
+        }
+
+        // 3. Append step to execution log stream
+        const stepEl = document.createElement('div');
+        stepEl.className = 'exec-log-row step-success';
+        stepEl.innerHTML = `
+          <span class="exec-row-time">${stepTime}</span>
+          <span class="exec-row-icon success">✓</span>
+          <div class="exec-row-content">
+            <div class="exec-row-title-line">
+              <span class="exec-row-label">${escapeHtml(step.label)}</span>
+              <span class="exec-row-pill ${step.type === 'github_issue' ? 'trigger' : step.type === 'ai_classifier' ? 'ai' : step.type === 'condition' ? 'condition' : 'action'}">${step.type.replace('_', ' ')}</span>
+              <span class="exec-row-duration">${step.durationMs}ms</span>
+            </div>
+            <div class="exec-row-desc">${desc}</div>
+          </div>
+        `;
+        execLogStream.appendChild(stepEl);
+        execLogStream.scrollTop = execLogStream.scrollHeight;
+
+        // Visual animation pause between steps
+        await new Promise(r => setTimeout(r, 450));
+
+        // 4. Mark node as successfully executed
+        if (nodeEl) {
+          nodeEl.classList.remove('executing');
+          nodeEl.classList.add('execution-success');
+        }
+
+        // 5. Highlight connecting edge to next step if exists
+        if (i < steps.length - 1) {
+          const nextStep = steps[i + 1];
+          const edge = state.currentWorkflow.edges.find(e => 
+            e.source === step.nodeId && e.target === nextStep.nodeId &&
+            (!step.branchSelected || e.sourceHandle === step.branchSelected)
+          );
+          if (edge) {
+            const edgeEl = document.getElementById(`edge-${edge.id}`);
+            if (edgeEl) edgeEl.classList.add('edge-executed');
+          }
+        }
+      }
+
+      // Mark unvisited nodes in workflow as skipped
+      const visitedNodeIds = new Set(steps.map(s => s.nodeId));
+      state.currentWorkflow.nodes.forEach(n => {
+        if (!visitedNodeIds.has(n.id)) {
+          const unvisitedEl = document.getElementById(`node-${n.id}`);
+          if (unvisitedEl) unvisitedEl.classList.add('execution-skipped');
+        }
+      });
+
+      // Panel Header Update
+      execStatusDot.className = 'exec-status-dot success';
+      execBadge.className = 'exec-badge badge-success';
+      execBadge.textContent = 'SUCCESS';
+      execMeta.textContent = `Completed ${steps.length} steps in ${execution.duration}ms`;
+
+      // Append summary card
+      const summaryCard = document.createElement('div');
+      summaryCard.className = 'exec-summary-card';
+      summaryCard.innerHTML = `
+        <div class="exec-summary-stats">
+          <span>Status: <strong style="color: var(--accent-green)">SUCCESS</strong></span>
+          <span>•</span>
+          <span>Steps Executed: <strong>${steps.length}</strong></span>
+          <span>•</span>
+          <span>Total Duration: <strong>${execution.duration}ms (${(execution.duration / 1000).toFixed(2)}s)</strong></span>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnExportExecJson">View Result JSON</button>
+      `;
+      execLogStream.appendChild(summaryCard);
+      summaryCard.querySelector('#btnExportExecJson').addEventListener('click', () => {
+        jsonCodeViewer.textContent = JSON.stringify(execution, null, 2);
+        jsonModal.classList.add('show');
+      });
+      execLogStream.scrollTop = execLogStream.scrollHeight;
+
+      showToast(`Workflow execution completed in ${execution.duration}ms!`, 'success');
+
+    } catch (err) {
+      console.error('Execution failure:', err);
+
+      execStatusDot.className = 'exec-status-dot failed';
+      execBadge.className = 'exec-badge badge-failed';
+      execBadge.textContent = 'FAILED';
+      execMeta.textContent = err.message;
+
+      const errorEl = document.createElement('div');
+      errorEl.className = 'exec-log-row step-failed';
+      errorEl.innerHTML = `
+        <span class="exec-row-time">${new Date().toLocaleTimeString()}</span>
+        <span class="exec-row-icon failed">✕</span>
+        <div class="exec-row-content">
+          <div class="exec-row-title-line">
+            <span class="exec-row-label" style="color: var(--accent-red)">Execution Terminated</span>
+          </div>
+          <div class="exec-row-desc" style="color: #fca5a5">${escapeHtml(err.message)}</div>
+        </div>
+      `;
+      execLogStream.appendChild(errorEl);
+      execLogStream.scrollTop = execLogStream.scrollHeight;
+
+      showToast(`Execution failed: ${err.message}`, 'error');
+
+    } finally {
+      state.isExecuting = false;
+      btnRunWorkflow.disabled = false;
+      btnRunWorkflow.classList.remove('running');
+      btnRunWorkflow.querySelector('.btn-run-text').textContent = 'Run Workflow';
+    }
+  }
+
+  function clearExecutionHighlighting() {
+    document.querySelectorAll('.workflow-node').forEach(el => {
+      el.classList.remove('executing', 'execution-success', 'execution-failed', 'execution-skipped');
+    });
+    document.querySelectorAll('.workflow-edge').forEach(el => {
+      el.classList.remove('edge-executed');
+    });
+  }
+
+  // Execution Panel Collapse/Expand Controls
+  executionPanelHeader.addEventListener('click', (e) => {
+    if (e.target === btnCloseExecPanel || btnCloseExecPanel.contains(e.target)) return;
+    executionPanel.classList.toggle('collapsed');
+    btnToggleExecPanel.textContent = executionPanel.classList.contains('collapsed') ? '▴' : '▾';
+  });
+
+  btnToggleExecPanel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    executionPanel.classList.toggle('collapsed');
+    btnToggleExecPanel.textContent = executionPanel.classList.contains('collapsed') ? '▴' : '▾';
+  });
+
+  btnCloseExecPanel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    executionPanel.classList.add('closed');
+  });
 
   // ==========================================================================
   // Dashboard Management

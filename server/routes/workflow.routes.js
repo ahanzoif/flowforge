@@ -13,6 +13,7 @@ router.post('/reset-demo', workflowController.resetDemo);
 // Standard REST CRUD endpoints
 router.get('/', workflowController.listWorkflows);
 router.get('/:id', workflowController.getWorkflow);
+router.post('/:id/run', workflowController.runWorkflow);
 router.post('/', workflowController.createWorkflow);
 router.put('/:id', workflowController.updateWorkflow);
 router.delete('/:id', workflowController.deleteWorkflow);

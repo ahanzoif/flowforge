@@ -2,10 +2,10 @@
   {
     "id": "wf-demo-github-triage",
     "name": "GitHub Issue AI Triage & Alert",
-    "description": "Ingests new GitHub issues, classifies priority and type via AI, routes bugs to Discord and other issues to Email.",
+    "description": "Updated description test",
     "status": "active",
-    "createdAt": "2026-09-19T18:17:57.296Z",
-    "updatedAt": "2026-09-19T18:18:46.685Z",
+    "createdAt": "2026-09-19T19:03:59.698Z",
+    "updatedAt": "2026-09-19T19:15:22.653Z",
     "nodes": [
       {
         "id": "trigger-1",

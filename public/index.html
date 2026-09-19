@@ -138,6 +138,13 @@
             </svg>
             <span>Save Workflow</span>
           </button>
+
+          <button class="btn btn-run" id="btnRunWorkflow" title="Execute workflow in simulation engine (Milestone 3)">
+            <svg class="run-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span class="btn-run-text">Run Workflow</span>
+          </button>
         </div>
       </div>
 
@@ -236,6 +243,29 @@
 
             <!-- HTML Draggable Nodes Container -->
             <div class="nodes-container" id="nodesContainer"></div>
+          </div>
+
+          <!-- Bottom Execution / Run Console Panel (Milestone 3) -->
+          <div class="execution-panel" id="executionPanel">
+            <div class="execution-panel-header" id="executionPanelHeader">
+              <div class="execution-header-left">
+                <span class="exec-status-dot idle" id="execStatusDot"></span>
+                <span class="execution-panel-title">Execution Console</span>
+                <span class="exec-badge badge-idle" id="execBadge">IDLE</span>
+                <span class="exec-meta" id="execMeta"></span>
+              </div>
+              <div class="execution-header-right">
+                <button class="btn-icon" id="btnToggleExecPanel" title="Minimize / Expand Console">▾</button>
+                <button class="btn-icon" id="btnCloseExecPanel" title="Close Console">×</button>
+              </div>
+            </div>
+            <div class="execution-panel-body" id="executionPanelBody">
+              <div class="exec-empty" id="execEmpty">
+                <span class="exec-empty-icon">▶</span>
+                <span>Click <strong>"Run Workflow"</strong> in the toolbar to execute this pipeline in simulation mode.</span>
+              </div>
+              <div class="exec-log-stream" id="execLogStream" style="display: none;"></div>
+            </div>
           </div>
         </div>
 

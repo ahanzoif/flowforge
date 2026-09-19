@@ -145,3 +145,41 @@ exports.resetDemo = (req, res) => {
     });
   }
 };
+
+const executionService = require('../services/execution.service');
+
+exports.runWorkflow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const wf = workflowService.getWorkflowById(id);
+
+    if (!wf) {
+      return res.status(404).json({
+        success: false,
+        error: `Workflow with ID '${id}' not found`
+      });
+    }
+
+    const runResult = await executionService.executeWorkflow(wf);
+
+    if (!runResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: runResult.error,
+        data: runResult
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Workflow executed successfully',
+      data: runResult
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: 'Internal execution failure',
+      details: err.message
+    });
+  }
+};
