@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FlowForge - Visual Workflow Automation Platform for developers. Automate workflows by connecting triggers, AI processing, conditions, and actions.">
+  <title>FlowForge — Visual Workflow Automation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="6" height="6" rx="1"></rect>
+            <rect x="15" y="3" width="6" height="6" rx="1"></rect>
+            <rect x="9" y="15" width="6" height="6" rx="1"></rect>
+            <path d="M6 9v3a3 3 0 0 0 3 3h3"></path>
+            <path d="M18 9v3a3 3 0 0 1-3 3"></path>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <span class="brand-title">FlowForge</span>
+          <span class="badge-version">v0.2.0 • M2 Visual Builder</span>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <nav class="nav-links">
+        <button class="nav-tab active" data-target="view-builder" id="tabBuilder">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Workflow Builder
+        </button>
+        <button class="nav-tab" data-target="view-dashboard" id="tabDashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          Dashboard
+        </button>
+        <button class="nav-tab" data-target="view-health" id="tabHealth">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          Health Monitor
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="backend-pill" id="navBackendPill">
+          <span class="status-dot checking"></span>
+          <span class="status-text">Backend: Checking</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="app-main">
+    
+    <!-- ====================================================================
+         VIEW 1: WORKFLOW BUILDER (Main Canvas)
+         ==================================================================== -->
+    <section id="view-builder" class="app-view active">
+      <!-- Builder Toolbar -->
+      <div class="builder-toolbar">
+        <div class="toolbar-left">
+          <div class="workflow-meta">
+            <input type="text" id="workflowNameInput" class="workflow-name-input" value="GitHub Issue AI Triage & Alert" title="Click to rename workflow">
+            <span class="workflow-badge active" id="workflowStatusBadge">Active</span>
+          </div>
+          <span class="meta-hint">Click and drag nodes to rearrange • Drag from handle circles to connect</span>
+        </div>
+
+        <div class="toolbar-right">
+          <div class="dropdown-container">
+            <button class="btn btn-outline" id="btnAddNodeDropdown">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Add Node</span>
+            </button>
+            <div class="dropdown-menu" id="addNodeMenu">
+              <div class="menu-group-label">Triggers</div>
+              <button class="dropdown-item" data-node-type="github_issue">
+                <span class="dot-type trigger"></span> GitHub Issue Created
+              </button>
+              <div class="menu-group-label">Processing</div>
+              <button class="dropdown-item" data-node-type="ai_classifier">
+                <span class="dot-type ai"></span> AI Issue Classifier
+              </button>
+              <div class="menu-group-label">Logic & Routing</div>
+              <button class="dropdown-item" data-node-type="condition">
+                <span class="dot-type condition"></span> Branch Condition (If/Else)
+              </button>
+              <div class="menu-group-label">Actions</div>
+              <button class="dropdown-item" data-node-type="discord">
+                <span class="dot-type action"></span> Discord Webhook Alert
+              </button>
+              <button class="dropdown-item" data-node-type="email">
+                <span class="dot-type action"></span> Email Notification
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-outline" id="btnResetDemo" title="Restore standard presentation workflow">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            <span>Reset Demo</span>
+          </button>
+
+          <button class="btn btn-outline" id="btnViewJson" title="Inspect current workflow JSON model">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span>View JSON</span>
+          </button>
+
+          <button class="btn btn-primary" id="btnSaveWorkflow" title="Save workflow to backend">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Save Workflow</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Builder Workspace Area -->
+      <div class="builder-workspace">
+        
+        <!-- Left Palette / Toolbox -->
+        <aside class="palette-sidebar">
+          <div class="sidebar-header">
+            <h3>Node Library</h3>
+            <span class="count-pill" id="paletteNodeCount">5 available</span>
+          </div>
+
+          <p class="palette-instruction">Click to add node to canvas</p>
+
+          <div class="palette-group">
+            <span class="palette-group-title">Trigger</span>
+            <div class="palette-item" data-node-type="github_issue">
+              <div class="palette-icon trigger">⚡</div>
+              <div class="palette-item-info">
+                <strong>GitHub Issue</strong>
+                <span>Fires when issue opened</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <span class="palette-group-title">Processing</span>
+            <div class="palette-item" data-node-type="ai_classifier">
+              <div class="palette-icon ai">🧠</div>
+              <div class="palette-item-info">
+                <strong>AI Classifier</strong>
+                <span>OpenAI structured triage</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <span class="palette-group-title">Condition</span>
+            <div class="palette-item" data-node-type="condition">
+              <div class="palette-icon condition">🔀</div>
+              <div class="palette-item-info">
+                <strong>If / Else Branch</strong>
+                <span>Evaluate type & priority</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="palette-group">
+            <span class="palette-group-title">Actions</span>
+            <div class="palette-item" data-node-type="discord">
+              <div class="palette-icon action">💬</div>
+              <div class="palette-item-info">
+                <strong>Discord Webhook</strong>
+                <span>Send formatted channel alert</span>
+              </div>
+            </div>
+            <div class="palette-item" data-node-type="email">
+              <div class="palette-icon action">✉️</div>
+              <div class="palette-item-info">
+                <strong>Email Dispatch</strong>
+                <span>Notify lead or maintainer</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center Interactive Canvas -->
+        <div class="canvas-container" id="canvasContainer">
+          <!-- Canvas Controls -->
+          <div class="canvas-controls">
+            <button class="btn-tool" id="btnZoomIn" title="Zoom In">+</button>
+            <button class="btn-tool" id="btnZoomReset" title="Reset View">100%</button>
+            <button class="btn-tool" id="btnZoomOut" title="Zoom Out">−</button>
+            <button class="btn-tool" id="btnCenterView" title="Center All Nodes">Fit</button>
+          </div>
+
+          <!-- Canvas Zoom/Pan Transform Wrapper -->
+          <div class="canvas-viewport" id="canvasViewport">
+            <!-- SVG Connectors Layer -->
+            <svg class="canvas-svg" id="canvasSvg">
+              <defs>
+                <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#58a6ff" />
+                </marker>
+                <marker id="arrowhead-true" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#22c55e" />
+                </marker>
+                <marker id="arrowhead-false" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f59e0b" />
+                </marker>
+              </defs>
+              <g id="edgesGroup"></g>
+              <path id="tempConnectionLine" class="temp-connection-line" d="M 0 0" style="display: none;"></path>
+            </svg>
+
+            <!-- HTML Draggable Nodes Container -->
+            <div class="nodes-container" id="nodesContainer"></div>
+          </div>
+        </div>
+
+        <!-- Right Inspector / Config Sidebar -->
+        <aside class="inspector-sidebar" id="inspectorSidebar">
+          <div class="sidebar-header">
+            <h3>Configuration</h3>
+            <button class="btn-icon" id="btnCloseInspector" title="Deselect node">×</button>
+          </div>
+
+          <div id="inspectorContent" class="inspector-content">
+            <!-- Rendered dynamically by app.js based on selected node -->
+            <div class="empty-inspector">
+              <div class="empty-icon">👈</div>
+              <h4>No Node Selected</h4>
+              <p>Click any node on the canvas to configure parameters, models, conditions, and targets.</p>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         VIEW 2: WORKFLOW DASHBOARD
+         ==================================================================== -->
+    <section id="view-dashboard" class="app-view">
+      <div class="dashboard-container">
+        <div class="dashboard-header">
+          <div>
+            <h2>Workflows & Automations</h2>
+            <p class="section-subtitle">Manage, duplicate, and monitor automated developer workflows.</p>
+          </div>
+          <button class="btn btn-primary" id="btnNewWorkflow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Create Workflow</span>
+          </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="dashboard-metrics">
+          <div class="dash-metric-card">
+            <span class="label">Total Workflows</span>
+            <span class="value" id="dashTotalWf">1</span>
+            <span class="trend">Configured in system</span>
+          </div>
+          <div class="dash-metric-card">
+            <span class="label">Active Automations</span>
+            <span class="value green" id="dashActiveWf">1</span>
+            <span class="trend">Listening for events</span>
+          </div>
+          <div class="dash-metric-card">
+            <span class="label">Total Graph Nodes</span>
+            <span class="value" id="dashTotalNodes">5</span>
+            <span class="trend">Across all workflows</span>
+          </div>
+          <div class="dash-metric-card">
+            <span class="label">Engine State</span>
+            <span class="value blue">Ready</span>
+            <span class="trend">Milestone 2 Active</span>
+          </div>
+        </div>
+
+        <!-- Workflows Grid List -->
+        <div class="workflows-grid" id="workflowsGrid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ====================================================================
+         VIEW 3: HEALTH MONITOR (From Milestone 1)
+         ==================================================================== -->
+    <section id="view-health" class="app-view">
+      <div class="health-view-container">
+        <div class="card health-card">
+          <div class="card-header">
+            <div class="card-header-info">
+              <h2 class="card-title">Backend Health & API Status</h2>
+              <p class="card-subtitle">Verifies backend connectivity via <code>GET /api/health</code></p>
+            </div>
+            <div class="status-indicator" id="statusIndicator">
+              <span class="status-dot unknown"></span>
+              <span class="status-text" id="statusText">Connecting...</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-box">
+                <span class="metric-label">Status</span>
+                <span class="metric-value" id="metricStatus">-</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Target Project</span>
+                <span class="metric-value" id="metricProject">-</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Latency</span>
+                <span class="metric-value" id="metricLatency">-</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Last Checked</span>
+                <span class="metric-value" id="metricLastChecked">-</span>
+              </div>
+            </div>
+
+            <div class="terminal-block">
+              <div class="terminal-header">
+                <div class="terminal-dots">
+                  <span class="dot red"></span>
+                  <span class="dot yellow"></span>
+                  <span class="dot green"></span>
+                </div>
+                <span class="terminal-title">GET /api/health Response</span>
+                <button class="btn-copy" id="btnCopyJson" title="Copy response JSON">Copy JSON</button>
+              </div>
+              <pre class="terminal-body"><code id="responseBody">// Awaiting response from backend...</code></pre>
+            </div>
+
+            <div class="action-bar">
+              <button id="btnCheckHealth" class="btn btn-primary">
+                <svg class="icon-refresh" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                <span>Test /api/health</span>
+              </button>
+              <div class="auto-refresh-toggle">
+                <label class="toggle-label" for="autoRefreshToggle">
+                  <input type="checkbox" id="autoRefreshToggle">
+                  <span class="slider"></span>
+                  <span class="toggle-text">Auto-ping (every 5s)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       WORKFLOW JSON MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="jsonModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Workflow JSON Model</h3>
+          <span class="modal-subtitle">Structured DAG representation (Section 6 Specification)</span>
+        </div>
+        <button class="btn-icon" id="btnCloseJsonModal">×</button>
+      </div>
+      <div class="modal-body">
+        <pre class="json-code-viewer"><code id="jsonCodeViewer"></code></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="btnCopyWorkflowJson">Copy JSON</button>
+        <button class="btn btn-outline" id="btnDownloadWorkflowJson">Download .json</button>
+        <button class="btn btn-primary" id="btnDoneJsonModal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

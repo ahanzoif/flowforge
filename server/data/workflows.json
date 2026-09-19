@@ -1,0 +1,118 @@
+[
+  {
+    "id": "wf-demo-github-triage",
+    "name": "GitHub Issue AI Triage & Alert",
+    "description": "Ingests new GitHub issues, classifies priority and type via AI, routes bugs to Discord and other issues to Email.",
+    "status": "active",
+    "createdAt": "2026-09-19T18:17:57.296Z",
+    "updatedAt": "2026-09-19T18:18:46.685Z",
+    "nodes": [
+      {
+        "id": "trigger-1",
+        "type": "github_issue",
+        "label": "GitHub Issue Created",
+        "position": {
+          "x": 80,
+          "y": 180
+        },
+        "config": {
+          "repository": "acme/flowforge-app",
+          "event": "issues.opened",
+          "branch": "main"
+        }
+      },
+      {
+        "id": "ai-1",
+        "type": "ai_classifier",
+        "label": "AI Issue Classifier",
+        "position": {
+          "x": 420,
+          "y": 180
+        },
+        "config": {
+          "model": "gpt-4o-mini",
+          "task": "classify_issue",
+          "outputFields": [
+            "type",
+            "priority",
+            "summary",
+            "reason"
+          ]
+        }
+      },
+      {
+        "id": "condition-1",
+        "type": "condition",
+        "label": "Is Bug?",
+        "position": {
+          "x": 760,
+          "y": 180
+        },
+        "config": {
+          "field": "type",
+          "operator": "equals",
+          "value": "bug"
+        }
+      },
+      {
+        "id": "discord-1",
+        "type": "discord",
+        "label": "Discord Dev Channel",
+        "position": {
+          "x": 1100,
+          "y": 90
+        },
+        "config": {
+          "channel": "dev-alerts",
+          "mentionOnHighPriority": true,
+          "webhookUrlEnv": "DISCORD_WEBHOOK_URL"
+        }
+      },
+      {
+        "id": "email-1",
+        "type": "email",
+        "label": "Email Product Lead",
+        "position": {
+          "x": 1100,
+          "y": 280
+        },
+        "config": {
+          "recipient": "lead@company.com",
+          "subject": "[Feature/Question] New Issue Logged"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ai",
+        "source": "trigger-1",
+        "target": "ai-1",
+        "sourceHandle": "out",
+        "targetHandle": "in"
+      },
+      {
+        "id": "e-ai-cond",
+        "source": "ai-1",
+        "target": "condition-1",
+        "sourceHandle": "out",
+        "targetHandle": "in"
+      },
+      {
+        "id": "e-cond-discord",
+        "source": "condition-1",
+        "target": "discord-1",
+        "sourceHandle": "true",
+        "targetHandle": "in",
+        "label": "True (BUG)"
+      },
+      {
+        "id": "e-cond-email",
+        "source": "condition-1",
+        "target": "email-1",
+        "sourceHandle": "false",
+        "targetHandle": "in",
+        "label": "False (OTHER)"
+      }
+    ]
+  }
+]

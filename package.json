@@ -1,0 +1,19 @@
+{
+  "name": "flowforge",
+  "version": "0.1.0",
+  "description": "FlowForge - Visual Workflow Automation Platform",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "keywords": [
+    "workflow",
+    "automation",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
